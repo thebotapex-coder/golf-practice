@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Practice Schedule Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #166534 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1f2937;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { text-align: center; color: white; padding: 40px 20px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1rem; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 { color: #1e40af; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .handicap-input { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .handicap-input label { font-weight: 600; color: #1e40af; }
+        .handicap-input input {
+            width: 100px; padding: 12px 15px; border: 2px solid #e2e8f0;
+            border-radius: 8px; font-size: 1.1rem; text-align: center;
+        }
+        .handicap-display {
+            background: #dbeafe; color: #1e40af; padding: 8px 16px;
+            border-radius: 20px; font-weight: 600; font-size: 0.9rem;
+        }
+        .focus-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .focus-option {
+            border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .focus-option:hover { border-color: #3b82f6; background: #f8fafc; }
+        .focus-option.selected { border-color: #3b82f6; background: #dbeafe; }
+        .focus-option h3 { font-size: 1.1rem; color: #1e40af; margin-bottom: 8px; }
+        .focus-option p { font-size: 0.9rem; color: #64748b; }
+        .day-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .day-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: center; }
+        .day-card h3 { color: #1e40af; margin-bottom: 15px; }
+        .location-toggle { display: flex; gap: 10px; justify-content: center; }
+        .location-btn {
+            flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px;
+            background: white; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
+        }
+        .location-btn:hover { border-color: #3b82f6; }
+        .location-btn.selected {
+            border-color: #3b82f6; background: #dbeafe;
+            color: #1e40af; font-weight: 600;
+        }
+        .location-btn.sim.selected { border-color: #7c3aed; background: #ede9fe; color: #5b21b6; }
+        .location-btn.range.selected { border-color: #059669; background: #f0fdf4; color: #065f46; }
+        .generate-btn {
+            width: 100%; padding: 18px;
+            background: linear-gradient(90deg, #3b82f6, #7c3aed);
+            color: white; border: none; border-radius: 12px;
+            font-size: 1.2rem; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .generate-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4); }
+        .schedule-output { display: none; }
+        .schedule-output.visible { display: block; }
+        .session-card {
+            background: #f8fafc; border-radius: 12px; padding: 25px;
+            margin-bottom: 20px; border-left: 5px solid #3b82f6;
+        }
+        .session-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; flex-wrap: wrap; gap: 10px;
+        }
+        .session-day { font-size: 1.3rem; font-weight: 700; color: #1e40af; }
+        .location-badge {
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600;
+        }
+        .location-badge.sim { background: #ede9fe; color: #5b21b6; }
+        .location-badge.range { background: #f0fdf4; color: #065f46; }
+        .stretches-section {
+            background: #e0f2fe; padding: 15px; border-radius: 8px; margin: 15px 0;
+        }
+        .stretches-section h4 { color: #0369a1; margin-bottom: 10px; font-size: 0.95rem; }
+        .stretch-item { padding: 6px 0; font-size: 0.9rem; border-bottom: 1px solid #bae6fd; }
+        .stretch-item:last-child { border-bottom: none; }
+        .stretch-name { font-weight: 600; color: #0369a1; }
+        .stretch-desc { color: #475569; }
+        .drills-section h4 { color: #065f46; margin: 15px 0 10px; }
+        .drill-item {
+            padding: 15px; background: white; border-radius: 8px;
+            margin-bottom: 12px; border-left: 3px solid #10b981;
+        }
+        .drill-name { font-weight: 600; color: #1e40af; margin-bottom: 8px; font-size: 1rem; }
+        .drill-details { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .drill-tag {
+            padding: 4px 10px; border-radius: 12px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+        .drill-tag.yardage { background: #dbeafe; color: #1e40af; }
+        .drill-tag.target { background: #fef3c7; color: #d97706; }
+        .drill-tag.streak { background: #fee2e2; color: #dc2626; }
+        .drill-instruction { color: #475569; font-size: 0.9rem; margin-top: 8px; line-height: 1.5; }
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; }
+        .action-btn {
+            flex: 1; padding: 15px; border-radius: 10px; border: none;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .action-btn.email { background: linear-gradient(90deg, #10b981, #059669); color: white; }
+        .action-btn.email:hover { box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4); }
+        .action-btn.print { background: #f1f5f9; color: #475569; }
+        .action-btn.print:hover { background: #e2e8f0; }
+        .success-msg {
+            background: #f0fdf4; border: 2px solid #10b981;
+            color: #065f46; padding: 15px; border-radius: 10px;
+            margin-top: 15px; text-align: center; display: none;
+        }
+        .success-msg.visible { display: block; }
+        .difficulty-note {
+            background: #fef3c7; border-left: 4px solid #d97706;
+            padding: 12px 15px; margin-bottom: 20px;
+            border-radius: 0 8px 8px 0; font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header { padding: 20px 15px; }
+            .header h1 { font-size: 1.6rem; }
+            .card { padding: 20px 15px; }
+            .handicap-input { flex-direction: column; align-items: flex-start; }
+            .focus-options, .day-selector { grid-template-columns: 1fr; }
+            .session-header { flex-direction: column; align-items: flex-start; }
+            .drill-details { flex-direction: column; }
+            .action-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏌️ Golf Practice Schedule</h1>
+            <p>Personalized practice plan with handicap-based targets</p>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Your Handicap</h2>
+            <div class="handicap-input">
+                <label for="handicap">Current Handicap:</label>
+                <input type="number" id="handicap" value="15" min="0" max="54" step="0.1">
+                <div class="handicap-display" id="skillLevel">Intermediate</div>
+            </div>
+            <p style="color: #64748b; font-size: 0.9rem;">Drills adjust targets, yardages, and streak requirements based on your level</p>
+        </div>
+
+        <div class="card">
+            <h2>📋 Select Weekly Focus</h2>
+            <div class="focus-options" id="focusOptions">
+                <div class="focus-option selected" data-focus="driving" data-secondary="irons">
+                    <h3>Full Swing Focus</h3>
+                    <p>Work on consistent contact and ball flight</p>
+                </div>
+                <div class="focus-option" data-focus="irons" data-secondary="wedges">
+                    <h3>Iron Play</h3>
+                    <p>Dial in approach shots</p>
+                </div>
+                <div class="focus-option" data-focus="wedges" data-secondary="short_game">
+                    <h3>Scoring Focus</h3>
+                    <p>Save strokes around the green</p>
+                </div>
+                <div class="focus-option" data-focus="driving" data-secondary="wedges">
+                    <h3>Driving & Wedges</h3>
+                    <p>Tee to green scoring</p>
+                </div>
+                <div class="focus-option" data-focus="short_game" data-secondary="wedges">
+                    <h3>Short Game Intensive</h3>
+                    <p>Save par from anywhere</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📍 Choose Practice Location</h2>
+            <div class="day-selector">
+                <div class="day-card">
+                    <h3>Monday</h3>
+                    <p style="color: #64748b; margin-bottom: 15px;">Primary Focus</p>
+                    <div class="location-toggle">
+                        <button class="location-btn sim" data-day="monday" data-loc="sim">🎮 Sim</button>
+                        <button class="location-btn range" data-day="monday" data-loc="range">⛳ Range</button>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <h3>Wednesday</h3>
+                    <p style="color: #64748b; margin-bottom: 15px;">Secondary Focus</p>
+                    <div class="location-toggle">
+                        <button class="location-btn sim" data-day="wednesday" data-loc="sim">🎮 Sim</button>
+                        <button class="location-btn range" data-day="wednesday" data-loc="range">⛳ Range</button>
+                    </div>
+                </div>
+                <div class="day-card">
+                    <h3>Friday</h3>
+                    <p style="color: #64748b; margin-bottom: 15px;">Primary Focus</p>
+                    <div class="location-toggle">
+                        <button class="location-btn sim" data-day="friday" data-loc="sim">🎮 Sim</button>
+                        <button class="location-btn range" data-day="friday" data-loc="range">⛳ Range</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="generate-btn" onclick="generateSchedule()">Generate Practice Schedule</button>
+
+        <div class="schedule-output card" id="scheduleOutput">
+            <h2>📅 Your Practice Schedule</h2>
+            <div id="scheduleContent"></div>
+            <div class="action-buttons">
+                <button class="action-btn email" onclick="sendEmail()">📧 Email Schedule</button>
+                <button class="action-btn print" onclick="window.print()">🖨️ Print</button>
+            </div>
+            <div class="success-msg" id="successMsg">✅ Schedule emailed successfully!</div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedFocus = { focus: 'driving', secondary: 'irons', name: 'Full Swing Focus' };
+        let selectedLocations = { monday: null, wednesday: null, friday: null };
+        let currentHandicap = 15;
+
+        // Get skill level based on handicap
+        function getSkillLevel(hcp) {
+            if (hcp <= 5) return 'Elite';
+            if (hcp <= 10) return 'Advanced';
+            if (hcp <= 18) return 'Intermediate';
+            if (hcp <= 25) return 'Beginner+';
+            return 'Beginner';
+        }
+
+        // Get difficulty multiplier
+        function getMultiplier(hcp) {
+            if (hcp <= 5) return 0.7;
+            if (hcp <= 10) return 0.85;
+            if (hcp <= 18) return 1;
+            if (hcp <= 25) return 1.2;
+            return 1.4;
+        }
+
+        // Get streak requirement
+        function getStreak(hcp) {
+            if (hcp <= 10) return '3 in a row';
+            if (hcp <= 18) return '2 in a row';
+            return '1 make';
+        }
+
+        // Get success rate
+        function getSuccessRate(hcp) {
+            if (hcp <= 5) return '90%';
+            if (hcp <= 10) return '80%';
+            if (hcp <= 18) return '60%';
+            if (hcp <= 25) return '40%';
+            return '30%';
+        }
+
+        // Stretch routines
+        const stretchRoutines = {
+            driving: [
+                { name: 'Neck Rolls', desc: '30 sec each direction' },
+                { name: 'Shoulder Circles', desc: '15 forward, 15 backward' },
+                { name: 'Torso Twists', desc: '15 each side with club' },
+                { name: 'Hip Openers', desc: '10 each leg' },
+                { name: 'Leg Swings', desc: '15 each leg' },
+                { name: 'Walking Lunges', desc: '10 steps' },
+                { name: 'Driver Swings', desc: '10 slow-motion' }
+            ],
+            irons: [
+                { name: 'Neck Tilts', desc: '30 sec each side' },
+                { name: 'Arm Circles', desc: '12 each arm' },
+                { name: 'Wrist Flexor', desc: '20 sec each wrist' },
+                { name: 'Torso Rotations', desc: '12 each side' },
+                { name: 'Hamstring Stretch', desc: '45 sec each leg' },
+                { name: '7-Iron Swings', desc: '10 smooth swings' }
+            ],
+            wedges: [
+                { name: 'Neck Rolls', desc: '30 sec each direction' },
+                { name: 'Wrist Circles', desc: '20 each direction' },
+                { name: 'Finger Flexes', desc: '20 reps' },
+                { name: 'Hip Hinge', desc: '10 reps' },
+                { name: 'Ankle Circles', desc: '15 each ankle' },
+                { name: 'Wedge Swings', desc: '10 soft pitches' }
+            ],
+            short_game: [
+                { name: 'Wrist Stretch', desc: '20 sec each wrist' },
+                { name: 'Shoulder Rolls', desc: '12 each direction' },
+                { name: 'Single-Leg Balance', desc: '20 sec each leg' },
+                { name: 'Hip Flexor', desc: '30 sec each leg' },
+                { name: 'Ankle Mobility', desc: '10 circles each' },
+                { name: 'Putter Strokes', desc: '10 smooth strokes' }
+            ]
+        };
+
+        // Random yardage generator
+        function randomYardage(base, variance) {
+            return Math.round(base + (Math.random() * variance * 2) - variance);
+        }
+
+        // Generate drills based on handicap and location
+        function generateDrill(category, location, hcp) {
+            const mult = getMultiplier(hcp);
+            const streak = getStreak(hcp);
+            const rate = getSuccessRate(hcp);
+            
+            // Random yardages for variety
+            const proxDistance = randomYardage(125, 25); // 100-150
+            const approachDistance = randomYardage(150, 30); // 120-180
+            const driveDistance = randomYardage(250, 50); // 200-300
+            const wedgeDistance = randomYardage(50, 15); // 35-65
+            const pitchDistance = randomYardage(20, 10); // 10-30
+            const chipDistance = randomYardage(15, 10); // 5-25
+            const puttDistance = randomYardage(25, 15); // 10-40
+            
+            const drills = {
+                driving: {
+                    sim: [
+                        {
+                            name: 'Fairway Finder Challenge',
+                            instruction: `GSPro: Play "Target Practice" mode. Set target width to ${Math.round(25 * mult)} yards at ${driveDistance} yards. Hit 10 drives.`,
+                            gspro: `Mode: Target Practice | Width: ${Math.round(25 * mult)}yd | Distance: ${driveDistance}yd`,
+                            tags: [
+                                { text: driveDistance + 'yd carry', type: 'yardage' },
+                                { text: Math.round(25 * mult) + 'yd fairway', type: 'target' },
+                                { text: streak, type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Speed Training',
+                            instruction: `GSPro: Driving Range mode. Mevo+ tracking on. Hit 10 drives focusing on clubhead speed. Target: ${Math.round(100 + (55 - hcp) * 2)}mph driver speed.`,
+                            gspro: `Mode: Driving Range | Mevo+: Club Speed ON | Wind: OFF`,
+                            tags: [
+                                { text: 'Target: ' + Math.round(100 + (55 - hcp) * 2) + 'mph', type: 'target' },
+                                { text: '10 drives', type: 'yardage' },
+                                { text: 'Track smash factor', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Shot Shaping',
+                            instruction: `GSPro: Course mode - pick par 5. Hit 5 intentional draws, 5 fades from tee. Must finish within ${Math.round(30 * mult)} yards of target line.`,
+                            gspro: `Mode: Course Play | Hole: Par 5 | Tee: Back`,
+                            tags: [
+                                { text: '5 draws + 5 fades', type: 'target' },
+                                { text: Math.round(30 * mult) + 'yd dispersion max', type: 'target' },
+                                { text: streak, type: 'streak' }
+                            ]
+                        }
+                    ],
+                    range: [
+                        {
+                            name: 'Alignment & Tempo',
+                            instruction: `10 drivers from tee at 3/4 tempo. Hit ${rate} of fairway targets.`,
+                            tags: [
+                                { text: 'Driver from tee', type: 'yardage' },
+                                { text: '10 balls', type: 'yardage' },
+                                { text: rate + ' on target', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Distance Control',
+                            instruction: `With driver, hit 5 balls each at 80%, 90%, 100% effort. Record carry distances with Mevo+.`,
+                            tags: [
+                                { text: 'Driver', type: 'yardage' },
+                                { text: '5 @ 80%, 5 @ 90%, 5 @ 100%', type: 'target' },
+                                { text: '15 total', type: 'yardage' }
+                            ]
+                        },
+                        {
+                            name: 'Pressure Fairways',
+                            instruction: `From 250 yards, hit 3 narrow fairway targets. Hit ${streak} on each before moving on.`,
+                            tags: [
+                                { text: '250 yards', type: 'yardage' },
+                                { text: '3 targets', type: 'target' },
+                                { text: streak + ' per target', type: 'streak' }
+                            ]
+                        }
+                    ]
+                },
+                irons: {
+                    sim: [
+                        {
+                            name: 'Green Hit Challenge',
+                            instruction: `GSPro: "Approach Challenge" mode. Set targets at ${approachDistance - 25}, ${approachDistance}, ${approachDistance + 25} yards. Hit 4 at each distance.`,
+                            gspro: `Mode: Approach Challenge | Distances: ${approachDistance - 25}/${approachDistance}/${approachDistance + 25}yd`,
+                            tags: [
+                                { text: (approachDistance - 25) + '/' + approachDistance + '/' + (approachDistance + 25) + 'yds', type: 'yardage' },
+                                { text: Math.round(7 * mult) + '/12 on green', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Smash Factor Training',
+                            instruction: `GSPro: Driving Range with Mevo+. Hit 10 7-irons. Achieve 1.35+ smash factor. Check spin rate: target ${Math.round(6500 - hcp * 50)} rpm.`,
+                            gspro: `Mode: Driving Range | Club: 7-iron | Mevo+: Smash Factor + Spin ON`,
+                            tags: [
+                                { text: '1.35+ smash factor', type: 'target' },
+                                { text: 'Target: ' + Math.round(6500 - hcp * 50) + ' rpm', type: 'target' },
+                                { text: '10 shots', type: 'yardage' }
+                            ]
+                        },
+                        {
+                            name: 'Proximity Challenge',
+                            instruction: `GSPro: "Closest to Pin" mode. ${proxDistance} yard approach shots. Finish within ${Math.round(15 * mult)} feet.`,
+                            gspro: `Mode: Closest to Pin | Distance: ${proxDistance}yd | Wind: Light`,
+                            tags: [
+                                { text: proxDistance + ' yards', type: 'yardage' },
+                                { text: Math.round(15 * mult) + 'ft proximity', type: 'target' },
+                                { text: streak, type: 'streak' }
+                            ]
+                        }
+                    ],
+                    range: [
+                        {
+                            name: 'Distance Ladder',
+                            instruction: `Hit targets at 100→125→150→175y. ${streak} at each distance.`,
+                            tags: [
+                                { text: '100-175 yards', type: 'yardage' },
+                                { text: streak + ' each', type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Ball Flight Control',
+                            instruction: `3 high + 3 low shots. ${rate} must be correct flight.`,
+                            tags: [
+                                { text: '6 balls', type: 'yardage' },
+                                { text: rate + ' correct', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Pressure Approach',
+                            instruction: `From 150 yards, hit green ${streak} to pass. Pick 3 different pins.`,
+                            tags: [
+                                { text: '150 yards', type: 'yardage' },
+                                { text: '3 pins', type: 'target' },
+                                { text: streak + ' to pass', type: 'streak' }
+                            ]
+                        }
+                    ]
+                },
+                wedges: {
+                    sim: [
+                        {
+                            name: 'Pitch & Stick',
+                            instruction: `GSPro: "Short Game" mode. ${wedgeDistance} yard pitches. Land in ${Math.round(10 * mult)}-foot circle and stop within 10 feet.`,
+                            gspro: `Mode: Short Game | Distance: ${wedgeDistance}yd | Green: Firm`,
+                            tags: [
+                                { text: wedgeDistance + ' yards', type: 'yardage' },
+                                { text: Math.round(10 * mult) + 'ft circle', type: 'target' },
+                                { text: streak, type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Spin Rate Check',
+                            instruction: `GSPro: Driving Range, wedge setting. Mevo+ spin tracking. Hit 10 56° wedges full. Target: ${Math.round(9000 - (hcp * 100))}+ rpm.`,
+                            gspro: `Mode: Driving Range | Club: 56° Full | Mevo+: Spin Rate ON`,
+                            tags: [
+                                { text: 'Target: ' + Math.round(9000 - (hcp * 100)) + '+ rpm', type: 'target' },
+                                { text: '10 shots', type: 'yardage' },
+                                { text: 'Check landing angle', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Up & Down Simulator',
+                            instruction: `GSPro: Course mode, practice green. ${chipDistance} yard chip to tight pin, then make putt. ${Math.round(5 * mult)} of 10 saves.`,
+                            gspro: `Mode: Course | Practice Green | Chip: ${chipDistance}yd | Slope: Medium`,
+                            tags: [
+                                { text: chipDistance + ' yards', type: 'yardage' },
+                                { text: Math.round(5 * mult) + '/10 saves', type: 'target' }
+                            ]
+                        }
+                    ],
+                    range: [
+                        {
+                            name: 'Distance Ladder',
+                            instruction: `Hit to 20→40→60→80y targets. ${streak} at each.`,
+                            tags: [
+                                { text: '20-80 yards', type: 'yardage' },
+                                { text: streak + ' each', type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Bump & Run',
+                            instruction: `From 20 yards, use 7i, PW, 56°. Land on green and stop within 10ft. ${rate} successful.`,
+                            tags: [
+                                { text: '20 yards', type: 'yardage' },
+                                { text: '3 clubs', type: 'target' },
+                                { text: '3 each', type: 'yardage' },
+                                { text: rate, type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Flop Shot',
+                            instruction: `From 15 yards, clear obstacle by 5ft, stop within ${Math.round(10 * mult)}ft of pin.`,
+                            tags: [
+                                { text: '15 yards', type: 'yardage' },
+                                { text: Math.round(10 * mult) + 'ft proximity', type: 'target' },
+                                { text: '5 shots', type: 'target' }
+                            ]
+                        }
+                    ]
+                },
+                short_game: {
+                    sim: [
+                        {
+                            name: 'Clock Drill',
+                            instruction: `GSPro: Putting mode. Set pins at 3ft, 6ft, 9ft. Make ${streak} at each before advancing to next distance.`,
+                            gspro: `Mode: Putting | Distances: 3/6/9ft | Green Speed: 10`,
+                            tags: [
+                                { text: '3/6/9 feet', type: 'yardage' },
+                                { text: '5 attempts each', type: 'yardage' },
+                                { text: streak + ' to advance', type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Lag Putting Challenge',
+                            instruction: `GSPro: "Lag Putting" mode. ${puttDistance} foot putts. Get ${Math.round(3 * mult)} of 5 inside 3-foot circle.`,
+                            gspro: `Mode: Lag Putting | Distance: ${puttDistance}ft | Target: 3ft circle`,
+                            tags: [
+                                { text: puttDistance + ' feet', type: 'yardage' },
+                                { text: Math.round(3 * mult) + '/5 inside 3ft', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Bunker Blast',
+                            instruction: `GSPro: "Bunker Practice" mode. Hit 10 sand shots to tight pin. ${Math.round(7 * mult)} must finish on green.`,
+                            gspro: `Mode: Bunker Practice | Sand: Medium | Pin: 15yds | Slope: Light`,
+                            tags: [
+                                { text: '10 bunker shots', type: 'yardage' },
+                                { text: Math.round(7 * mult) + '/10 on green', type: 'target' }
+                            ]
+                        }
+                    ],
+                    range: [
+                        {
+                            name: 'Clock Drill',
+                            instruction: `5 putts from 3ft, 6ft, 9ft. Make ${streak} at each distance.`,
+                            tags: [
+                                { text: '3/6/9 feet', type: 'yardage' },
+                                { text: '5 putts each', type: 'yardage' },
+                                { text: streak + ' each', type: 'streak' }
+                            ]
+                        },
+                        {
+                            name: 'Lag Putting',
+                            instruction: `Roll 5 balls from 20+ feet. Inside 3-foot circle.`,
+                            tags: [
+                                { text: '20+ feet', type: 'yardage' },
+                                { text: 'Inside 3ft circle', type: 'target' }
+                            ]
+                        },
+                        {
+                            name: 'Chipping Ladder',
+                            instruction: `From 5 yards off green, chip to 10/20/30 foot targets. ${streak} at each.`,
+                            tags: [
+                                { text: '10/20/30 feet', type: 'yardage' },
+                                { text: streak + ' each', type: 'streak' }
+                            ]
+                        }
+                    ]
+                }
+            };
+            
+            const drillSet = drills[category][location];
+            return drillSet[Math.floor(Math.random() * drillSet.length)];
+        }
+
+        // Event listeners
+        document.getElementById('handicap').addEventListener('input', (e) => {
+            currentHandicap = parseFloat(e.target.value) || 15;
+            document.getElementById('skillLevel').textContent = getSkillLevel(currentHandicap);
+        });
+
+        document.querySelectorAll('.focus-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.focus-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedFocus = {
+                    focus: option.dataset.focus,
+                    secondary: option.dataset.secondary,
+                    name: option.querySelector('h3').textContent
+                };
+            });
+        });
+
+        document.querySelectorAll('.location-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const day = btn.dataset.day;
+                document.querySelectorAll(`.location-btn[data-day="${day}"]`).forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedLocations[day] = btn.dataset.loc;
+            });
+        });
+
+        function generateSchedule() {
+            if (!selectedLocations.monday || !selectedLocations.wednesday || !selectedLocations.friday) {
+                alert('Please select practice location for each day!');
+                return;
+            }
+
+            const days = [
+                { name: 'Monday', loc: selectedLocations.monday, category: selectedFocus.focus },
+                { name: 'Wednesday', loc: selectedLocations.wednesday, category: selectedFocus.secondary },
+                { name: 'Friday', loc: selectedLocations.friday, category: selectedFocus.focus }
+            ];
+
+            let html = `<div class="difficulty-note">
+                <strong>Handicap ${currentHandicap} - ${getSkillLevel(currentHandicap)} Level</strong><br>
+                Targets adjusted: ${getStreak(currentHandicap)} required, ${Math.round(getMultiplier(currentHandicap) * 100)}% difficulty multiplier<br>
+                <em>🎲 Yardages are randomized for variety each time you generate!</em>
+            </div>`;
+
+            days.forEach(day => {
+                const stretches = stretchRoutines[day.category];
+                const drill = generateDrill(day.category, day.loc, currentHandicap);
+                const locLabel = day.loc === 'sim' ? 'GSPro Simulator (Mevo+)' : 'Driving Range';
+                const locClass = day.loc;
+                const categoryNames = { driving: 'Driving', irons: 'Irons', wedges: 'Wedges', short_game: 'Short Game' };
+
+                html += `
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-day">${day.name} - ${categoryNames[day.category]}</div>
+                            <div class="location-badge ${locClass}">${locLabel}</div>
+                        </div>
+                        <p style="color: #64748b; margin-bottom: 15px;"><strong>Time:</strong> 20-30 mins</p>
+                        
+                        <div class="stretches-section">
+                            <h4>🧘 Pre-Practice Stretches (10-15 min)</h4>
+                            ${stretches.map(s => `
+                                <div class="stretch-item">
+                                    <span class="stretch-name">${s.name}</span> - <span class="stretch-desc">${s.desc}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="drills-section">
+                            <h4>🏌️ Drill of the Day</h4>
+                            <div class="drill-item">
+                                <div class="drill-name">${drill.name}</div>
+                                ${drill.gspro ? `<div style="background: #ede9fe; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.9rem; color: #5b21b6;"><strong>🎮 GSPro:</strong> ${drill.gspro}</div>` : ''}
+                                <div class="drill-instruction">${drill.instruction}</div>
+                                <div class="drill-details">
+                                    ${drill.tags.map(t => `<span class="drill-tag ${t.type}">${t.text}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('scheduleContent').innerHTML = html;
+            document.getElementById('scheduleOutput').classList.add('visible');
+            document.getElementById('scheduleOutput').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function sendEmail() {
+            document.getElementById('successMsg').classList.add('visible');
+            setTimeout(() => {
+                document.getElementById('successMsg').classList.remove('visible');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
